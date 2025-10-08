@@ -8,6 +8,9 @@
 *.so
 *.dylib
 
+# Build output directory
+bin/
+
 # Test binary, built with `go test -c`
 *.test
 
@@ -28,5 +31,15 @@ go.work.sum
 .env
 
 # Editor/IDE
-# .idea/
-# .vscode/
+.idea/
+.vscode/
+
+# C# / .NET
+**/obj/
+*.user
+*.suo
+**/proto/
+
+**/.venv/
+**/__pycache__
+**/*.egg-info/

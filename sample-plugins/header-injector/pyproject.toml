@@ -1,0 +1,50 @@
+[project]
+name = "header-injector-plugin"
+version = "1.0.0"
+description = "A Python middleware plugin that injects custom headers"
+requires-python = ">=3.11"
+dependencies = [
+    "grpcio>=1.75.1",
+    "grpcio-tools>=1.75.1",
+]
+
+[project.scripts]
+header-injector = "header_injector:serve"
+
+[dependency-groups]
+dev = [
+    { include-group = "lint" },
+    { include-group = "tests" },
+    "debugpy>=1.8.14",
+]
+
+lint = [
+    "pre-commit>=4.2.0",
+    "ruff>=0.11.13",
+]
+
+tests = [
+    "pytest>=8.3.5",
+    "setuptools>=80.9.0",
+    "setuptools-scm[toml]>=8.3.1",
+]
+
+all = [
+    { include-group = "dev" },
+    { include-group = "lint" },
+    { include-group = "tests" },
+]
+
+[build-system]
+requires = ["setuptools>=48", "setuptools_scm[toml]>=6.3.1"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+exclude = ["tests", "tests.*"]
+where = ["src"]
+namespaces = false
+
+[tool.setuptools.package-data]
+"*" = ["py.typed"]
+
+[tool.setuptools_scm]
