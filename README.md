@@ -60,6 +60,7 @@ make help         # Show all available commands
 make all          # Build application and all plugins
 make demo         # Build everything and show demo instructions
 make demo-test    # Run automated tests (requires server running)
+make deploy       # Build and copy plugins to ~/temp/plugins (configurable)
 make run          # Start the server with plugin discovery
 make build        # Build just the main application
 make plugins      # Build just the plugins
@@ -109,8 +110,16 @@ This repository includes example plugins demonstrating the architecture:
    - Shows multi-language plugin support with compiled language
    - Built as self-contained single-file binary
    - Uses modern C# pattern matching and JSON processing
+   - Implements full plugin lifecycle (Configure, Stop, CheckHealth, CheckReady)
 
-4. **Header Injector Plugin** (Python) - Reference implementation only
+4. **Prompt Guard 2 Plugin** (C#/.NET) - SDK-based content filtering
+   - Demonstrates using the BasePlugin SDK for cleaner implementations
+   - Same content filtering functionality as Prompt Guard
+   - Inherits from BasePlugin class with lifecycle method overrides
+   - Shows best practices for plugin initialization and health checking
+   - Built as self-contained single-file binary
+
+5. **Header Injector Plugin** (Python) - Reference implementation only
    - Source code example in `plugins/header-injector/`
    - Shows plugin structure in interpreted language
    - Not included in automated build (requires Python runtime)
@@ -340,22 +349,28 @@ plugins-demo/
 │       ├── discovery.go              # Plugin discovery system
 │       ├── grpc_wrapper.go           # gRPC client wrapper
 │       └── loader.go                 # Legacy plugin loader
-├── plugins/                          # Plugin source code
+├── sample-plugins/                   # Plugin source code
 │   ├── rate-limit/                   # Rate limiting plugin (Go)
 │   ├── tool-audit/                   # Tool audit plugin (Go)
+│   ├── header-transformer/           # Header transformer plugin (Go)
 │   ├── prompt-guard/                 # Prompt guard plugin (C#/.NET)
 │   │   ├── prompt-guard.sln          # Solution file
 │   │   └── PromptGuard/              # C# project
 │   │       ├── PromptGuard.csproj    # Project file
 │   │       ├── Program.cs            # Plugin implementation
 │   │       └── plugin.proto          # Protobuf definitions
+│   ├── prompt-guard-2/               # Prompt guard 2 plugin (C#/.NET SDK-based)
+│   │   ├── PromptGuard2.csproj       # Project file
+│   │   └── Program.cs                # Plugin implementation using BasePlugin SDK
 │   └── header-injector/              # Header injection plugin (Python) - reference only
 ├── bin/                              # Build output (gitignored)
 │   ├── plugins-demo               # Main application binary
-│   └── plugins/                      # Built plugin binaries
+│   └── sample-plugins/               # Built plugin binaries
 │       ├── rate-limit-plugin         # Self-contained Go binary (14MB)
 │       ├── tool-audit-plugin         # Self-contained Go binary (14MB)
-│       └── prompt-guard-plugin       # Self-contained .NET binary (104MB)
+│       ├── header-transformer-plugin # Self-contained Go binary (14MB)
+│       ├── prompt-guard-plugin       # Self-contained .NET binary (104MB)
+│       └── prompt-guard-2-plugin     # Self-contained .NET binary (104MB, SDK-based)
 ├── docs/
 │   └── PLUGIN_DEVELOPMENT.md         # Comprehensive plugin development guide
 └── .claude/
@@ -440,6 +455,28 @@ dotnet publish PromptGuard/PromptGuard.csproj -c Release -r osx-arm64 --self-con
 cd plugins/header-injector
 uv sync && uv run python generate_proto.py
 ```
+
+### Deploying Plugins
+
+The `deploy` target builds all plugins and copies them to a deployment directory:
+
+```bash
+# Deploy to default location (~/temp/plugins)
+make deploy
+
+# Deploy to custom location
+DEPLOY_DIR=/opt/plugins make deploy
+
+# Or set it in your environment
+export DEPLOY_DIR=/opt/plugins
+make deploy
+```
+
+The deploy target:
+1. Runs `make demo` to build everything
+2. Creates the deployment directory if needed
+3. Copies all built plugins from `bin/sample-plugins/` to the deployment directory
+4. Displays a summary of deployed plugins with their sizes
 
 ## Enterprise Integration
 

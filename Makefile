@@ -1,4 +1,4 @@
-.PHONY: build test lint run proto proto-check plugins clean help demo demo-test all
+.PHONY: build test lint run proto proto-check plugins clean help demo demo-test deploy all
 
 # Output directories
 BIN_DIR := bin
@@ -7,6 +7,9 @@ PLUGIN_BIN_DIR := $(BIN_DIR)/$(PLUGIN_DIR)
 PROTO_DIR := proto
 OUT_DIR := .
 PROTO_FILES := $(PROTO_DIR)/plugins/plugin.proto
+
+# Deployment configuration (can be overridden with environment variables)
+DEPLOY_DIR ?= $(HOME)/temp/plugins
 
 # Build the main application
 build:
@@ -156,12 +159,28 @@ demo-test:
 	@echo "View OpenAPI docs: http://localhost:8080/docs"
 	@echo ""
 
+# Deploy: Build and copy plugins to temp directory
+deploy: demo
+	@echo ""
+	@echo "======================================"
+	@echo "Deploying Plugins"
+	@echo "======================================"
+	@echo ""
+	@mkdir -p $(DEPLOY_DIR)
+	@cp -v $(PLUGIN_BIN_DIR)/* $(DEPLOY_DIR)/
+	@echo ""
+	@echo "✅ Plugins deployed to $(DEPLOY_DIR)"
+	@echo ""
+	@ls -lh $(DEPLOY_DIR) | awk 'NR>1 {print "  " $$9 " (" $$5 ")"}'
+	@echo ""
+
 # Show help
 help:
 	@echo "Available targets:"
 	@echo "  all         - Build application and all plugins"
 	@echo "  demo        - Build everything and show demo instructions"
 	@echo "  demo-test   - Run demo test requests (server must be running)"
+	@echo "  deploy      - Build and copy plugins to \$$HOME/temp/plugins (or \$$DEPLOY_DIR)"
 	@echo ""
 	@echo "  build       - Build the main application"
 	@echo "  plugins     - Build all plugins"
@@ -177,3 +196,7 @@ help:
 	@echo "  1. make demo        # Build everything"
 	@echo "  2. make run         # Start server (in terminal 1)"
 	@echo "  3. make demo-test   # Run tests (in terminal 2)"
+	@echo ""
+	@echo "Deployment:"
+	@echo "  make deploy                         # Deploy to \$$HOME/temp/plugins"
+	@echo "  DEPLOY_DIR=/path/to/dir make deploy # Deploy to custom directory"

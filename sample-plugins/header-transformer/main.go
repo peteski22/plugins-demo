@@ -23,6 +23,7 @@ func (p *headerTransformerPlugin) GetMetadata(_ context.Context, _ *emptypb.Empt
 		Name:        "header-transformer",
 		Version:     "1.0.0",
 		Description: "Transforms request headers by adding custom headers",
+		CommitHash:  "abc123",
 	}, nil
 }
 

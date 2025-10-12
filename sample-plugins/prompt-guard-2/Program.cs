@@ -17,6 +17,8 @@ public class PromptGuard2 : BasePlugin
         "you are now"
     ];
 
+    private bool _initialized = false;
+
     public override Task<Metadata> GetMetadata(Empty request, Grpc.Core.ServerCallContext context)
     {
         return Task.FromResult(new Metadata
@@ -33,6 +35,40 @@ public class PromptGuard2 : BasePlugin
         {
             Flows = { FlowConstants.FlowRequest }
         });
+    }
+
+    public override Task<Empty> Configure(PluginConfig request, Grpc.Core.ServerCallContext context)
+    {
+        _initialized = true;
+        Console.WriteLine("Prompt guard 2 plugin configured");
+        return Task.FromResult(new Empty());
+    }
+
+    public override Task<Empty> Stop(Empty request, Grpc.Core.ServerCallContext context)
+    {
+        _initialized = false;
+        Console.WriteLine("Prompt guard 2 plugin stopped");
+        return Task.FromResult(new Empty());
+    }
+
+    public override Task<Empty> CheckHealth(Empty request, Grpc.Core.ServerCallContext context)
+    {
+        if (!_initialized)
+        {
+            throw new Grpc.Core.RpcException(new Grpc.Core.Status(Grpc.Core.StatusCode.FailedPrecondition, "Plugin not initialized"));
+        }
+
+        return Task.FromResult(new Empty());
+    }
+
+    public override Task<Empty> CheckReady(Empty request, Grpc.Core.ServerCallContext context)
+    {
+        if (!_initialized)
+        {
+            throw new Grpc.Core.RpcException(new Grpc.Core.Status(Grpc.Core.StatusCode.FailedPrecondition, "Plugin not ready"));
+        }
+
+        return Task.FromResult(new Empty());
     }
 
     public override Task<HTTPResponse> HandleRequest(HTTPRequest request, Grpc.Core.ServerCallContext context)
