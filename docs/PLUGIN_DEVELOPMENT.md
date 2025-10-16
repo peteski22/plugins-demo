@@ -1,30 +1,46 @@
 # Plugin Development Guide
 
-> **Note:** This guide is part of the middleware-test demonstration repository.
-> The concepts and patterns developed here with a view to integrating them into an OSS project.
+> **Note:** This guide provides examples to demonstrate plugin development for [mcpd](https://github.com/mozilla-ai/mcpd/pull/209).
+> These examples show how to build plugins using language-specific SDKs for the `mcpd` plugin system.
 
 ## Overview
 
-This guide covers how to develop external middleware plugins for the `middleware-test` system using the gRPC-based external process architecture.
+This guide covers how to develop external middleware plugins for `mcpd` using the gRPC-based external process architecture.
 
-Plugins are standalone executables that communicate with the main application via gRPC using cross-platform transport (Unix domain sockets on Unix-like systems, TCP loopback on Windows). They can be written in any language that supports gRPC.
+Plugins are standalone executables that communicate with the main application via gRPC using cross-platform transport (Unix domain sockets on Unix-like systems, TCP loopback on Windows). They can be written in any language that supports gRPC and can be executed from their own binary.
+
+### Official Resources
+
+**Protocol Definitions:**
+- [mcpd-proto](https://github.com/mozilla-ai/mcpd-proto) - Official protobuf definitions for the `mcpd` plugin protocol
+
+**Language SDKs:**
+- [mcpd-plugins-sdk-go](https://github.com/mozilla-ai/mcpd-plugins-sdk-go) - Go SDK for building `mcpd` plugins
+- [mcpd-plugins-sdk-dotnet](https://github.com/mozilla-ai/mcpd-plugins-sdk-dotnet) - .NET SDK for building `mcpd` plugins ([NuGet package](https://www.nuget.org/packages/MozillaAI.Mcpd.Plugins.Sdk))
+
+For languages without an official SDK, use the protobuf definitions from [mcpd-proto](https://github.com/mozilla-ai/mcpd-proto) to generate gRPC code for your language.
 
 ## Architecture: External Process Plugins
 
-### Two-Service Model
+### Plugin Service Interface
 
-The plugin system uses a dual-service gRPC architecture:
+The plugin system uses a single gRPC service with the following methods:
 
-PluginManager Service (Lifecycle Management):
-* `GetInfo()` - Returns plugin metadata (name, version, description)
-* `InitializePlugin()` - Called once during plugin startup
-* `ConfigurePlugin()` - Applies configuration to the plugin
-* `ShutdownPlugin()` - Called during graceful shutdown
-* `CheckHealth()` - Verifies plugin health status
+**Lifecycle:**
+* `Configure(context.Context, *PluginConfig)` - Initialize plugin with host-provided settings
+* `Stop(context.Context, *emptypb.Empty)` - Gracefully shut down the plugin
 
-Middleware Service (Request Processing):
-* `ShouldHandle()` - Determines if plugin should process a request
-* `ProcessRequest()` - Processes the request and returns response/continue decision
+**Identity and Capabilities:**
+* `GetMetadata(context.Context, *emptypb.Empty)` - Returns plugin name, version, description, commit hash, and build date
+* `GetCapabilities(context.Context, *emptypb.Empty)` - Declares supported request/response flows (FLOW_REQUEST, FLOW_RESPONSE)
+
+**Health / Readiness:**
+* `CheckHealth(context.Context, *emptypb.Empty)` - Verifies plugin operational status (returns error via gRPC status if unhealthy)
+* `CheckReady(context.Context, *emptypb.Empty)` - Confirms readiness to handle requests (returns error via gRPC status if not ready)
+
+**Request / Response Handling:**
+* `HandleRequest(context.Context, *HTTPRequest)` - Processes incoming HTTP requests
+* `HandleResponse(context.Context, *HTTPResponse)` - Processes outgoing HTTP responses
 
 ### Benefits of External Processes
 
@@ -58,76 +74,19 @@ Plugin implementations must support both modes by parsing the `--mode` flag.
 
 ## Plugin Protocol Definition
 
-```proto
-syntax = "proto3";
+For the complete and authoritative plugin protocol definition, see the [mcpd-proto repository](https://github.com/mozilla-ai/mcpd-proto/blob/main/plugins/v1/plugin.proto).
 
-package plugin;
+The protocol defines a single `Plugin` service with methods for:
+- Lifecycle management (Configure, Stop)
+- Plugin identity and capabilities (GetMetadata, GetCapabilities)
+- Health checks (CheckHealth, CheckReady)
+- HTTP request/response processing (HandleRequest, HandleResponse)
 
-// ===========================
-// Lifecycle / Control Service
-// ===========================
-service PluginManager {
-  rpc GetInfo(Empty) returns (PluginInfo);
-  rpc InitializePlugin(InitRequest) returns (Result);
-  rpc ConfigurePlugin(Config) returns (Result);
-  rpc ShutdownPlugin(Empty) returns (Result);
-  rpc CheckHealth(Empty) returns (Result);
-}
+**Note:** The examples below may be outdated. For production use, we recommend using the official SDKs:
+- **Go:** [mcpd-plugins-sdk-go](https://github.com/mozilla-ai/mcpd-plugins-sdk-go)
+- **.NET:** [mcpd-plugins-sdk-dotnet](https://github.com/mozilla-ai/mcpd-plugins-sdk-dotnet) ([NuGet](https://www.nuget.org/packages/MozillaAI.Mcpd.Plugins.Sdk))
 
-message Empty {}
-
-message PluginInfo {
-  string name = 1;
-  string version = 2;
-  string description = 3;
-}
-
-message InitRequest {
-  map<string, string> env = 1;  // host-provided environment, optional
-}
-
-message Config {
-  map<string, string> values = 1;  // serialized config
-}
-
-message Result {
-  bool success = 1;
-  string message = 2;
-}
-
-// ===========================
-// Request / Middleware Service
-// ===========================
-service Middleware {
-  rpc ShouldHandle(RequestContext) returns (BoolResult);
-  rpc ProcessRequest(Request) returns (Response);
-}
-
-message RequestContext {
-  string client_name = 1;
-  string method = 2;
-  string path = 3;
-  map<string, string> headers = 4;
-}
-
-message Request {
-  string method = 1;
-  string path = 2;
-  map<string, string> headers = 3;
-  bytes body = 4;
-}
-
-message Response {
-  bool continue = 1;              // true = pass to next handler, false = stop
-  int32 status_code = 2;          // used if stop
-  map<string, string> headers = 3;
-  bytes body = 4;
-}
-
-message BoolResult {
-  bool value = 1;
-}
-```
+The SDKs provide convenience wrappers, proper error handling, and are kept in sync with the protocol definitions.
 
 ## Plugin Lifecycle
 
