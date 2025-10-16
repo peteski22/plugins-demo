@@ -43,14 +43,14 @@ public class PromptGuard : BasePlugin
     public override Task<Empty> Configure(PluginConfig request, Grpc.Core.ServerCallContext context)
     {
         _initialized = true;
-        Logger?.LogInformation("Prompt guard plugin configured");
+        Logger.LogInformation("Prompt guard plugin configured");
         return Task.FromResult(new Empty());
     }
 
     public override Task<Empty> Stop(Empty request, Grpc.Core.ServerCallContext context)
     {
         _initialized = false;
-        Logger?.LogInformation("Prompt guard plugin stopped");
+        Logger.LogInformation("Prompt guard plugin stopped");
         return Task.FromResult(new Empty());
     }
 
@@ -76,7 +76,7 @@ public class PromptGuard : BasePlugin
 
     public override Task<HTTPResponse> HandleRequest(HTTPRequest request, Grpc.Core.ServerCallContext context)
     {
-        Logger?.LogInformation("Prompt guard handling request: {Method} {Path}", request.Method, request.Path);
+        Logger.LogInformation("Prompt guard handling request: {Method} {Path}", request.Method, request.Path);
 
         if (request.Body is null or { IsEmpty: true })
         {
@@ -90,7 +90,7 @@ public class PromptGuard : BasePlugin
 
             if (ScanJsonElement(jsonDoc.RootElement, out var foundPhrase))
             {
-                Logger?.LogWarning("Blocked phrase detected: {Phrase}", foundPhrase);
+                Logger.LogWarning("Blocked phrase detected: {Phrase}", foundPhrase);
 
                 var errorJson = JsonSerializer.Serialize(new
                 {
