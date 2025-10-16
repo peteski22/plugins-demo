@@ -33,7 +33,7 @@ func (p *ToolAuditPlugin) GetMetadata(ctx context.Context, _ *emptypb.Empty) (*p
 
 func (p *ToolAuditPlugin) GetCapabilities(ctx context.Context, _ *emptypb.Empty) (*pluginv1.Capabilities, error) {
 	return &pluginv1.Capabilities{
-		Flows: []pluginv1.Flow{pluginv1.FlowRequest},
+		Flows: []pluginv1.Flow{pluginv1.FlowRequest, pluginv1.FlowRequest},
 	}, nil
 }
 
@@ -195,14 +195,18 @@ func (p *ToolAuditPlugin) logToolUsage(info auditInfo) {
 	}
 
 	if jsonLog, err := json.Marshal(logEntry); err == nil {
-		log.Printf("AUDIT: %s", string(jsonLog))
+		log.Printf("[INFO] AUDIT: %s", string(jsonLog))
 	} else {
-		log.Printf("AUDIT: %s %s - MCP Server: %s, Tool: %s",
+		log.Printf("[INFO] AUDIT: %s %s - MCP Server: %s, Tool: %s",
 			info.Method, info.Path, info.MCPServer, info.ToolName)
 	}
 }
 
 func main() {
+	// Some basic config for logging.
+	log.SetFlags(0)
+	log.SetPrefix("")
+
 	if err := pluginv1.Serve(newToolAuditPlugin()); err != nil {
 		log.Fatal(err)
 	}

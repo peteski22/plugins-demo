@@ -353,15 +353,12 @@ plugins-demo/
 │   ├── rate-limit/                   # Rate limiting plugin (Go)
 │   ├── tool-audit/                   # Tool audit plugin (Go)
 │   ├── header-transformer/           # Header transformer plugin (Go)
-│   ├── prompt-guard/                 # Prompt guard plugin (C#/.NET)
+│   ├── prompt-guard/                 # Prompt guard plugin (C#/.NET SDK-based)
 │   │   ├── prompt-guard.sln          # Solution file
 │   │   └── PromptGuard/              # C# project
 │   │       ├── PromptGuard.csproj    # Project file
 │   │       ├── Program.cs            # Plugin implementation
 │   │       └── plugin.proto          # Protobuf definitions
-│   ├── prompt-guard-2/               # Prompt guard 2 plugin (C#/.NET SDK-based)
-│   │   ├── PromptGuard2.csproj       # Project file
-│   │   └── Program.cs                # Plugin implementation using BasePlugin SDK
 │   └── header-injector/              # Header injection plugin (Python) - reference only
 ├── bin/                              # Build output (gitignored)
 │   ├── plugins-demo               # Main application binary

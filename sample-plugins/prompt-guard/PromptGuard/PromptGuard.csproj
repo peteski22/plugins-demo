@@ -8,26 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Google.Protobuf" Version="3.32.1" />
-    <PackageReference Include="Grpc.AspNetCore.Server" Version="2.71.0" />
-    <PackageReference Include="Grpc.Tools" Version="2.72.0">
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
-    <PackageReference Include="Microsoft.AspNetCore.Server.Kestrel" Version="2.2.0" />
-    <PackageReference Include="System.Text.Json" Version="9.0.9" />
+    <PackageReference Include="MozillaAI.Mcpd.Plugins.Sdk" Version="0.0.1" />
   </ItemGroup>
-
-  <ItemGroup>
-    <Protobuf Include="$(MSBuildProjectDirectory)/proto/plugin.proto" GrpcServices="Server" ProtoRoot="$(MSBuildProjectDirectory)/proto" />
-  </ItemGroup>
-
-  <Target Name="FetchProto" BeforeTargets="PrepareForBuild">
-    <MakeDir Directories="$(MSBuildProjectDirectory)/proto" />
-    <DownloadFile
-      SourceUrl="https://raw.githubusercontent.com/mozilla-ai/mcpd-proto/v0.0.2/plugins/v1/plugin.proto"
-      DestinationFolder="$(MSBuildProjectDirectory)/proto"
-      DestinationFileName="plugin.proto" />
-  </Target>
 
 </Project>

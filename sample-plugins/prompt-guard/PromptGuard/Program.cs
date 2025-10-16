@@ -1,18 +1,12 @@
-using System.Net;
 using System.Text.Json;
 using Google.Protobuf;
-using Grpc.Core;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Server.Kestrel.Core;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
+using Google.Protobuf.WellKnownTypes;
 using MozillaAI.Mcpd.Plugins.V1;
 
-namespace PromptGuard;
-
-class PromptGuardPlugin : Plugin.PluginBase
+/// <summary>
+/// Prompt guard plugin that scans request JSON bodies for blocked phrases.
+/// </summary>
+public class PromptGuard : BasePlugin
 {
     private static readonly string[] BlockedPhrases =
     [
@@ -23,61 +17,63 @@ class PromptGuardPlugin : Plugin.PluginBase
         "you are now"
     ];
 
+    private static readonly string name = "plugin-prompt-guard";
+
     private bool _initialized = false;
 
-    public override Task<MozillaAI.Mcpd.Plugins.V1.Metadata> GetMetadata(Google.Protobuf.WellKnownTypes.Empty request, ServerCallContext context)
+    public override Task<Metadata> GetMetadata(Empty request, Grpc.Core.ServerCallContext context)
     {
-        return Task.FromResult(new MozillaAI.Mcpd.Plugins.V1.Metadata
+        return Task.FromResult(new Metadata
         {
-            Name = "prompt-guard",
+            Name = name,
             Version = "1.0.0",
-            Description = "Scans request JSON bodies for blocked phrases and rejects requests containing them"
+            Description = "Scans request JSON bodies for blocked phrases (SDK version)"
         });
     }
 
-    public override Task<Capabilities> GetCapabilities(Google.Protobuf.WellKnownTypes.Empty request, ServerCallContext context)
+    public override Task<Capabilities> GetCapabilities(Empty request, Grpc.Core.ServerCallContext context)
     {
         return Task.FromResult(new Capabilities
         {
-            Flows = { Flow.Request }
+            Flows = { FlowConstants.FlowRequest }
         });
     }
 
-    public override Task<Google.Protobuf.WellKnownTypes.Empty> Configure(PluginConfig request, ServerCallContext context)
+    public override Task<Empty> Configure(PluginConfig request, Grpc.Core.ServerCallContext context)
     {
         _initialized = true;
         Console.WriteLine("Prompt guard plugin configured");
-        return Task.FromResult(new Google.Protobuf.WellKnownTypes.Empty());
+        return Task.FromResult(new Empty());
     }
 
-    public override Task<Google.Protobuf.WellKnownTypes.Empty> Stop(Google.Protobuf.WellKnownTypes.Empty request, ServerCallContext context)
+    public override Task<Empty> Stop(Empty request, Grpc.Core.ServerCallContext context)
     {
         _initialized = false;
         Console.WriteLine("Prompt guard plugin stopped");
-        return Task.FromResult(new Google.Protobuf.WellKnownTypes.Empty());
+        return Task.FromResult(new Empty());
     }
 
-    public override Task<Google.Protobuf.WellKnownTypes.Empty> CheckHealth(Google.Protobuf.WellKnownTypes.Empty request, ServerCallContext context)
+    public override Task<Empty> CheckHealth(Empty request, Grpc.Core.ServerCallContext context)
     {
         if (!_initialized)
         {
-            throw new RpcException(new Status(StatusCode.FailedPrecondition, "Plugin not initialized"));
+            throw new Grpc.Core.RpcException(new Grpc.Core.Status(Grpc.Core.StatusCode.FailedPrecondition, "Plugin not initialized"));
         }
 
-        return Task.FromResult(new Google.Protobuf.WellKnownTypes.Empty());
+        return Task.FromResult(new Empty());
     }
 
-    public override Task<Google.Protobuf.WellKnownTypes.Empty> CheckReady(Google.Protobuf.WellKnownTypes.Empty request, ServerCallContext context)
+    public override Task<Empty> CheckReady(Empty request, Grpc.Core.ServerCallContext context)
     {
         if (!_initialized)
         {
-            throw new RpcException(new Status(StatusCode.FailedPrecondition, "Plugin not ready"));
+            throw new Grpc.Core.RpcException(new Grpc.Core.Status(Grpc.Core.StatusCode.FailedPrecondition, "Plugin not ready"));
         }
 
-        return Task.FromResult(new Google.Protobuf.WellKnownTypes.Empty());
+        return Task.FromResult(new Empty());
     }
 
-    public override Task<HTTPResponse> HandleRequest(HTTPRequest request, ServerCallContext context)
+    public override Task<HTTPResponse> HandleRequest(HTTPRequest request, Grpc.Core.ServerCallContext context)
     {
         Console.WriteLine($"Prompt guard handling request: {request.Method} {request.Path}");
 
@@ -98,7 +94,8 @@ class PromptGuardPlugin : Plugin.PluginBase
                 var errorJson = JsonSerializer.Serialize(new
                 {
                     error = "Request blocked: prohibited content detected",
-                    reason = $"Phrase '{foundPhrase}' is not allowed"
+                    reason = $"Phrase '{foundPhrase}' is not allowed",
+                    plugin = name
                 });
 
                 return Task.FromResult(new HTTPResponse
@@ -119,17 +116,6 @@ class PromptGuardPlugin : Plugin.PluginBase
         }
 
         return Task.FromResult(new HTTPResponse { Continue = true });
-    }
-
-    public override Task<HTTPResponse> HandleResponse(HTTPResponse request, ServerCallContext context)
-    {
-        return Task.FromResult(new HTTPResponse
-        {
-            Continue = true,
-            StatusCode = request.StatusCode,
-            Headers = { request.Headers },
-            Body = request.Body
-        });
     }
 
     private bool ScanJsonElement(JsonElement element, out string foundPhrase)
@@ -175,73 +161,10 @@ class PromptGuardPlugin : Plugin.PluginBase
     }
 }
 
-class Program
+public class Program
 {
-    static async Task Main(string[] args)
+    public static async Task<int> Main(string[] args)
     {
-        try
-        {
-            string? address = null;
-            string network = "unix";
-
-            for (int i = 0; i < args.Length; i++)
-            {
-                if (args[i] == "--address" && i + 1 < args.Length)
-                {
-                    address = args[++i];
-                }
-                else if (args[i] == "--network" && i + 1 < args.Length)
-                {
-                    network = args[++i];
-                }
-            }
-
-            if (string.IsNullOrEmpty(address))
-            {
-                await Console.Error.WriteLineAsync("Error: --address flag is required");
-                Environment.Exit(1);
-            }
-
-            var builder = WebApplication.CreateBuilder(args);
-            builder.Logging.ClearProviders();
-
-            builder.WebHost.ConfigureKestrel(options =>
-            {
-                if (network == "tcp")
-                {
-                    var parts = address.Split(':');
-                    var host = parts.Length > 1 ? parts[0] : "127.0.0.1";
-                    var port = parts.Length > 1 ? int.Parse(parts[1]) : int.Parse(address);
-
-                    options.Listen(IPAddress.Parse(host), port, listenOptions =>
-                    {
-                        listenOptions.Protocols = HttpProtocols.Http2;
-                    });
-                }
-                else
-                {
-                    options.ListenUnixSocket(address, listenOptions =>
-                    {
-                        listenOptions.Protocols = HttpProtocols.Http2;
-                    });
-                }
-            });
-
-            builder.Services.AddGrpc();
-
-            var app = builder.Build();
-            app.MapGrpcService<PromptGuardPlugin>();
-
-            await app.StartAsync();
-            Console.WriteLine($"Prompt guard plugin listening on {network} {address}");
-
-            await app.WaitForShutdownAsync();
-        }
-        catch (Exception ex)
-        {
-            await Console.Error.WriteLineAsync($"Fatal error in prompt-guard plugin: {ex.Message}");
-            await Console.Error.WriteLineAsync($"Stack trace: {ex.StackTrace}");
-            Environment.Exit(1);
-        }
+        return await PluginServer.Serve<PromptGuard>(args);
     }
 }

@@ -55,11 +55,7 @@ plugins:
 	@cd $(PLUGIN_DIR)/prompt-guard && dotnet publish PromptGuard/PromptGuard.csproj -c Release -r osx-arm64 --self-contained /p:PublishSingleFile=true -o ../../$(PLUGIN_BIN_DIR)/prompt-guard-tmp && \
 		mv ../../$(PLUGIN_BIN_DIR)/prompt-guard-tmp/PromptGuard ../../$(PLUGIN_BIN_DIR)/prompt-guard-plugin && \
 		rm -rf ../../$(PLUGIN_BIN_DIR)/prompt-guard-tmp
-	@echo "  ✓ prompt-guard-plugin"
-	@cd $(PLUGIN_DIR)/prompt-guard-2 && dotnet publish PromptGuard2.csproj -c Release -r osx-arm64 --self-contained /p:PublishSingleFile=true -o ../../$(PLUGIN_BIN_DIR)/prompt-guard-2-tmp && \
-		mv ../../$(PLUGIN_BIN_DIR)/prompt-guard-2-tmp/PromptGuard2 ../../$(PLUGIN_BIN_DIR)/prompt-guard-2-plugin && \
-		rm -rf ../../$(PLUGIN_BIN_DIR)/prompt-guard-2-tmp
-	@echo "  ✓ prompt-guard-2-plugin (SDK)"
+	@echo "  ✓ prompt-guard-plugin (SDK)"
 	@# Python plugin (header-injector) not built automatically.
 	@# Interpreted languages require runtime dependencies and can't be self-contained binaries.
 	@# The source code is available in plugins/header-injector/ as a reference implementation.
@@ -79,7 +75,7 @@ plugins:
 	@#fi
 
 # Build everything
-all: build plugins
+all: clean build plugins
 	@echo ""
 	@echo "✅ Build complete! Run 'make run' to start the server."
 
@@ -160,7 +156,7 @@ demo-test:
 	@echo ""
 
 # Deploy: Build and copy plugins to temp directory
-deploy: demo
+deploy: all
 	@echo ""
 	@echo "======================================"
 	@echo "Deploying Plugins"
