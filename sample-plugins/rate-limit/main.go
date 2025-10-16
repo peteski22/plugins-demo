@@ -198,6 +198,9 @@ func (p *RateLimitPlugin) getResetTime() int64 {
 }
 
 func main() {
+	log.SetFlags(0)
+	log.SetPrefix("")
+
 	if err := pluginv1.Serve(newRateLimitPlugin()); err != nil {
 		log.Fatal(err)
 	}

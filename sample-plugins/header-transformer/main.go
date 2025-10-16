@@ -86,6 +86,9 @@ func (p *headerTransformerPlugin) HandleResponse(_ context.Context, resp *pb.HTT
 }
 
 func main() {
+	log.SetFlags(0)
+	log.SetPrefix("")
+
 	var (
 		address = flag.String("address", "", "Address to listen on (e.g., /tmp/plugin.sock or localhost:50051)")
 		network = flag.String("network", "unix", "Network type: 'unix' or 'tcp'")
