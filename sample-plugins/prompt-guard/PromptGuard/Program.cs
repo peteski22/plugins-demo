@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
+using Microsoft.Extensions.Logging;
 using MozillaAI.Mcpd.Plugins.V1;
 
 /// <summary>
@@ -42,14 +43,14 @@ public class PromptGuard : BasePlugin
     public override Task<Empty> Configure(PluginConfig request, Grpc.Core.ServerCallContext context)
     {
         _initialized = true;
-        Console.WriteLine("Prompt guard plugin configured");
+        Logger?.LogInformation("Prompt guard plugin configured");
         return Task.FromResult(new Empty());
     }
 
     public override Task<Empty> Stop(Empty request, Grpc.Core.ServerCallContext context)
     {
         _initialized = false;
-        Console.WriteLine("Prompt guard plugin stopped");
+        Logger?.LogInformation("Prompt guard plugin stopped");
         return Task.FromResult(new Empty());
     }
 
@@ -75,7 +76,7 @@ public class PromptGuard : BasePlugin
 
     public override Task<HTTPResponse> HandleRequest(HTTPRequest request, Grpc.Core.ServerCallContext context)
     {
-        Console.WriteLine($"Prompt guard handling request: {request.Method} {request.Path}");
+        Logger?.LogInformation("Prompt guard handling request: {Method} {Path}", request.Method, request.Path);
 
         if (request.Body is null or { IsEmpty: true })
         {
@@ -89,7 +90,7 @@ public class PromptGuard : BasePlugin
 
             if (ScanJsonElement(jsonDoc.RootElement, out var foundPhrase))
             {
-                Console.WriteLine($"Blocked phrase detected: {foundPhrase}");
+                Logger?.LogWarning("Blocked phrase detected: {Phrase}", foundPhrase);
 
                 var errorJson = JsonSerializer.Serialize(new
                 {

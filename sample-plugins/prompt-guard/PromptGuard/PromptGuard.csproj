@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="MozillaAI.Mcpd.Plugins.Sdk" Version="0.0.1" />
+    <PackageReference Include="MozillaAI.Mcpd.Plugins.Sdk" Version="0.0.4" />
   </ItemGroup>
 
 </Project>
