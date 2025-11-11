@@ -17,6 +17,7 @@ Plugins are standalone executables that communicate with the main application vi
 **Language SDKs:**
 - [mcpd-plugins-sdk-go](https://github.com/mozilla-ai/mcpd-plugins-sdk-go) - Go SDK for building `mcpd` plugins
 - [mcpd-plugins-sdk-dotnet](https://github.com/mozilla-ai/mcpd-plugins-sdk-dotnet) - .NET SDK for building `mcpd` plugins ([NuGet package](https://www.nuget.org/packages/MozillaAI.Mcpd.Plugins.Sdk))
+- [mcpd-plugins-sdk-python](https://github.com/mozilla-ai/mcpd-plugins-sdk-python) - Python SDK for building `mcpd` plugins
 
 For languages without an official SDK, use the protobuf definitions from [mcpd-proto](https://github.com/mozilla-ai/mcpd-proto) to generate gRPC code for your language.
 
@@ -47,6 +48,7 @@ For the complete protocol definition, see [mcpd-proto](https://github.com/mozill
 **For production use, we recommend using the official SDKs:**
 - **Go:** [mcpd-plugins-sdk-go](https://github.com/mozilla-ai/mcpd-plugins-sdk-go)
 - **.NET:** [mcpd-plugins-sdk-dotnet](https://github.com/mozilla-ai/mcpd-plugins-sdk-dotnet) ([NuGet](https://www.nuget.org/packages/MozillaAI.Mcpd.Plugins.Sdk))
+- **Python:** [mcpd-plugins-sdk-python](https://github.com/mozilla-ai/mcpd-plugins-sdk-python)
 
 The SDKs provide convenience wrappers, proper error handling, and are kept in sync with the protocol definitions. The code examples below may be outdated.
 
@@ -165,16 +167,54 @@ Parse `--address` and `--network` command-line arguments, create appropriate lis
 
 For complete implementation details, refer to the [mcpd-proto plugin.proto](https://github.com/mozilla-ai/mcpd-proto/blob/main/plugins/v1/plugin.proto) and see the working examples in this repository's `sample-plugins/` directory.
 
+## Creating a Python Plugin
+
+**Recommended approach:** Use the official [mcpd-plugins-sdk-python](https://github.com/mozilla-ai/mcpd-plugins-sdk-python) SDK.
+
+The SDK provides:
+- Pre-built `BasePlugin` class with sensible defaults
+- Async/await support for all operations
+- Proper error handling and logging
+- Command-line argument parsing for `--address` and `--network`
+- Cross-platform socket support
+- Up-to-date protocol implementation
+
+**Basic usage:**
+
+```python
+import asyncio
+import sys
+from mcpd_plugins import BasePlugin, serve
+from mcpd_plugins.v1.plugins.plugin_pb2 import FLOW_REQUEST, Capabilities, Metadata
+
+class MyPlugin(BasePlugin):
+    async def GetMetadata(self, request, context):
+        return Metadata(name="my-plugin", version="1.0.0", description="My plugin")
+
+    async def GetCapabilities(self, request, context):
+        return Capabilities(flows=[FLOW_REQUEST])
+
+    async def HandleRequest(self, request, context):
+        # Process request here.
+        response = HTTPResponse(**{"continue": True})
+        return response
+
+if __name__ == "__main__":
+    asyncio.run(serve(MyPlugin(), sys.argv))
+```
+
+See the SDK repository and `sample-plugins/header-injector/` for complete examples.
+
 ## Creating Plugins in Other Languages
 
-For languages without an official SDK (Python, Rust, Node.js, etc.):
+For languages without an official SDK (Rust, Node.js, etc.):
 
 1. Generate gRPC code from [mcpd-proto](https://github.com/mozilla-ai/mcpd-proto/blob/main/plugins/v1/plugin.proto)
 2. Implement the `Plugin` service interface (all 8 methods)
 3. Parse `--address` and `--network` command-line arguments
 4. Package as an executable binary
 
-**Note:** Interpreted languages (Python, Node.js, Ruby) require additional packaging tools like PyInstaller, pkg, or similar to create standalone executable binaries. See `sample-plugins/header-injector/` for a Python reference implementation.
+**Note:** Interpreted languages require additional packaging tools to create standalone executable binaries (e.g., PyInstaller for Python, pkg for Node.js).
 
 ## Working Examples
 
@@ -183,7 +223,7 @@ See the `sample-plugins/` directory in this repository for complete, working exa
 - `tool-audit/` - Go plugin for audit logging
 - `header-transformer/` - Go plugin for header manipulation
 - `prompt-guard/` - C#/.NET plugin for content filtering
-- `header-injector/` - Python reference implementation (Needs additional work to build executable binary)
+- `header-injector/` - Python plugin demonstrating header injection using the Python SDK
 
 ## Plugin Deployment
 
